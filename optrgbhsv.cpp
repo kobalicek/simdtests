@@ -1,7 +1,7 @@
 #define USE_SSE2
 
-#include "rgbhsv.h"
-#include "util.h"
+#include "optcore.h"
+#include "optrgbhsv.h"
 
 // ============================================================================
 // [Pure C Implementation]
@@ -98,21 +98,21 @@ void argb_from_ahsv_c(float* dst, const float* src, int length) {
 // 'ab' - Everything but sign (0x7FFFFFFF)
 // 'nm' - Number (0xFFFFFFFF)
 
-XMM_CONSTANT_PS(p0, 0.0f, 0.0f, 0.0f, 0.0f);
-XMM_CONSTANT_PS(p1, 1.0f, 1.0f, 1.0f, 1.0f);
-XMM_CONSTANT_PI(sn, 0x80000000, 0x80000000, 0x80000000, 0x80000000);
-XMM_CONSTANT_PI(abs, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF);
-XMM_CONSTANT_PI(full, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
-XMM_CONSTANT_PS(epsilon, 1e-8f, 1e-8f, 1e-8f, 1e-8f);
+XMM_CONST_PS(p0, 0.0f, 0.0f, 0.0f, 0.0f);
+XMM_CONST_PS(p1, 1.0f, 1.0f, 1.0f, 1.0f);
+XMM_CONST_PI(sn, 0x80000000, 0x80000000, 0x80000000, 0x80000000);
+XMM_CONST_PI(abs, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF);
+XMM_CONST_PI(full, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+XMM_CONST_PS(epsilon, 1e-8f, 1e-8f, 1e-8f, 1e-8f);
 
-XMM_CONSTANT_PI(sn_sn_p0_p0, 0x80000000, 0x80000000, 0x00000000, 0x00000000);
-XMM_CONSTANT_PS(p0_p0_p0_p6, 0.0f, 0.0f, 0.0f, 6.0f);
-XMM_CONSTANT_PS(p1_p1_m2_p0, 1.0f, 1.0f,-2.0f, 0.0f);
-XMM_CONSTANT_PS(m1_m1_m1_p1,-1.0f,-1.0f,-1.0f, 1.0f);
-XMM_CONSTANT_PS(m6_m6_p6_p0,-6.0f,-6.0f, 6.0f, 0.0f);
-XMM_CONSTANT_PS(m6_m6_m6_m6,-6.0f,-6.0f,-6.0f,-6.0f);
-XMM_CONSTANT_PS(p4o6_p2o6_p3o6_p0  , 4.0f / 6.0f, 2.0f / 6.0f, 3.0f / 6.0f, 0.0f);
-XMM_CONSTANT_PS(m4o6_m4o6_m4o6_m4o6,-4.0f / 6.0f,-4.0f / 6.0f,-4.0f / 6.0f,-4.0f / 6.0f);
+XMM_CONST_PI(sn_sn_p0_p0, 0x80000000, 0x80000000, 0x00000000, 0x00000000);
+XMM_CONST_PS(p0_p0_p0_p6, 0.0f, 0.0f, 0.0f, 6.0f);
+XMM_CONST_PS(p1_p1_m2_p0, 1.0f, 1.0f,-2.0f, 0.0f);
+XMM_CONST_PS(m1_m1_m1_p1,-1.0f,-1.0f,-1.0f, 1.0f);
+XMM_CONST_PS(m6_m6_p6_p0,-6.0f,-6.0f, 6.0f, 0.0f);
+XMM_CONST_PS(m6_m6_m6_m6,-6.0f,-6.0f,-6.0f,-6.0f);
+XMM_CONST_PS(p4o6_p2o6_p3o6_p0  , 4.0f / 6.0f, 2.0f / 6.0f, 3.0f / 6.0f, 0.0f);
+XMM_CONST_PS(m4o6_m4o6_m4o6_m4o6,-4.0f / 6.0f,-4.0f / 6.0f,-4.0f / 6.0f,-4.0f / 6.0f);
 
 void ahsv_from_argb_sse2(float* dst, const float* src, int length) {
   int i = length;

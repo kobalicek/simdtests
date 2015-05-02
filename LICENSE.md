@@ -1,5 +1,5 @@
-RgbHsv - Optimized Conversion Between RGB and HSV (SSE/SSE2)
-Copyright (c) 2013-2014, Petr Kobalicek <kobalicek.petr@gmail.com>
+OptRgbHsv - Optimized RGB/HSV Conversion by using SIMD  
+Copyright (c) 2013-2015, Petr Kobalicek <kobalicek.petr@gmail.com>
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages

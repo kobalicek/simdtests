@@ -1,8 +1,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "rgbhsv.h"
-#include "util.h"
+#include "optcore.h"
+#include "optrgbhsv.h"
 
 // ============================================================================
 // [Test]
@@ -37,8 +37,8 @@ static void validate(float *argb, float* ahsv, int length) {
   int i;
 
   for (i = 0; i < length; i++) {
-    XMM_ALIGNED_VAR(float, local_argb[4]);
-    XMM_ALIGNED_VAR(float, local_ahsv[4]);
+    XMM_ALIGN_VAR(float, local_argb[4]);
+    XMM_ALIGN_VAR(float, local_ahsv[4]);
 
     memcpy(local_argb, argb, sizeof(float)* 4);
     ahsv_from_argb_sse2(local_ahsv, local_argb, 1);
@@ -74,9 +74,8 @@ static void validate(float *argb, float* ahsv, int length) {
   }
 }
 
-int main(int argc, char* argv[])
-{
-  Timer timer;
+int main(int argc, char* argv[]) {
+  OptTimer timer;
 
   int size = 100000;
   int i;

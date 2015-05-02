@@ -1,5 +1,5 @@
-#ifndef _RGBHSV_H
-#define _RGBHSV_H
+#ifndef _OPTRGBHSV_H
+#define _OPTRGBHSV_H
 
 // Pure C++ Implementation.
 void ahsv_from_argb_c(float* dst, const float* src, int length);
@@ -9,4 +9,4 @@ void argb_from_ahsv_c(float* dst, const float* src, int length);
 void ahsv_from_argb_sse2(float* dst, const float* src, int length);
 void argb_from_ahsv_sse2(float* dst, const float* src, int length);
 
-#endif // _RGBHSV_H
+#endif // _OPTRGBHSV_H
