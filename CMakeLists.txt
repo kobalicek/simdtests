@@ -1,8 +1,9 @@
 CMake_Minimum_Required(VERSION 2.8.12)
-Project(OptRgbHsv C CXX)
+Project(SimdRgbHsv C CXX)
 
-Add_Executable(OptRgbHsv
-  optapp.cpp
-  optcore.h
-  optrgbhsv.cpp
-  optrgbhsv.h)
+Add_Executable(SimdRgbHsv
+  simdrgbhsv.h
+  simdrgbhsv_ref.cpp
+  simdrgbhsv_sse2.cpp
+  simdglobals.h
+  simdtest.cpp)

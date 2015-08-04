@@ -1,4 +1,4 @@
-OptRgbHsv - Optimized RGB/HSV Conversion by using SIMD  
+SimdRgbHsv - SIMD Optimized RGB/HSV Conversion  
 Copyright (c) 2013-2015, Petr Kobalicek <kobalicek.petr@gmail.com>
 
 This software is provided 'as-is', without any express or implied
