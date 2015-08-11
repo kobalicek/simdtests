@@ -30,7 +30,7 @@ SIMD_CONST_PI(sn_sn_p0_p0, 0x80000000, 0x80000000, 0x00000000, 0x00000000);
 
 SIMD_CONST_PS(p0         , 0.0f , 0.0f , 0.0f , 0.0f);
 SIMD_CONST_PS(p1         , 1.0f , 1.0f , 1.0f , 1.0f);
-SIMD_CONST_PS(eps        , 1e-8f, 1e-8f, 1e-8f, 1e-8f);
+SIMD_CONST_PS(eps        , 1e-9f, 1e-9f, 1e-9f, 1e-9f);
 SIMD_CONST_PS(p0_p0_p0_p6, 0.0f , 0.0f , 0.0f , 6.0f);
 SIMD_CONST_PS(p1_p1_m2_p0, 1.0f , 1.0f ,-2.0f , 0.0f);
 SIMD_CONST_PS(m1_m1_m1_p1,-1.0f ,-1.0f ,-1.0f , 1.0f);
@@ -43,145 +43,179 @@ SIMD_CONST_PS(m4o6_m4o6_m4o6_m4o6,-4.0f / 6.0f,-4.0f / 6.0f,-4.0f / 6.0f,-4.0f /
 static __m128 SIMD_INLINE _mm_load_ps_my(const void* mem) { return _mm_load_ps((const float*)mem); }
 static void SIMD_INLINE _mm_store_ps_my(void* mem, __m128 reg) { _mm_store_ps((float*)mem, reg); }
 
+static void SIMD_INLINE ahsv_from_argb_4x(
+  __m128& p0, __m128& p1, __m128& p2, __m128& p3,
+  __m128  x0, __m128  x1, __m128  x2, __m128  x3) {
+
+  __m128 xG, xB, xA, xR;
+  __m128 xH, xS, xV, xC;
+  __m128 xX, xY, xZ;
+
+  // Transpose to get isolated pixes components.
+  //
+  // Input data:  x0 == [B0|G0|R0|A0]
+  //              x1 == [B1|G1|R1|A1]
+  //              x2 == [B2|G2|R2|A2]
+  //              x3 == [B3|G3|R3|A3]
+  //
+  // What we get: xA == [A3 A2 A1 A0] - Alpha channel.
+  //              xR == [R3 R2 R1 R0] - Red   channel.
+  //              xG == [G3 G2 G1 G0] - Green channel.
+  //              xB == [B3 B2 B1 B0] - Blue  channel.
+  //
+  // What we use: xC - Temporary.
+  xA = _mm_unpackhi_ps(x0, x1);                          // xA <- [B1|B0|G1|G0]
+  xB = _mm_unpackhi_ps(x2, x3);                          // xB <- [B3|B2|G3|G2]
+  xC = _mm_unpacklo_ps(x0, x1);                          // xC <- [R1|R0|A1|A0]
+  xR = _mm_unpacklo_ps(x2, x3);                          // xR <- [R3|R2|A3|A2]
+
+  xG = _mm_movelh_ps(xA, xB);                            // xG <- [G3|G2|G1|G0]
+  xB = _mm_movehl_ps(xB, xA);                            // xB <- [B3|B2|B1|B0]
+  xA = _mm_movelh_ps(xC, xR);                            // xA <- [A3|A2|A1|A0]
+  xR = _mm_movehl_ps(xR, xC);                            // xR <- [R3|R2|R1|R0]
+
+  // Calculate Value, Chroma, and Saturation.
+  //
+  // What we get: xC == [C3 C2 C1 C0 ] - Chroma.
+  //              xV == [V3 V2 V1 V0 ] - Value == Max(R, G, B).
+  //              xS == [S3 S2 S1 S0 ] - Saturation, possibly incorrect due to division
+  //                                     by zero, corrected at the end of the algorithm.
+  //
+  // What we use: xR
+  //              xG
+  //              xB
+  xS = _mm_max_ps(xG, xB);                               // xS <- [max(G, B)]
+  xC = _mm_min_ps(xG, xB);                               // xC <- [min(G, B)]
+
+  xS = _mm_max_ps(xS, xR);                               // xS <- [max(G, B, R)]
+  xC = _mm_min_ps(xC, xR);                               // xC <- [min(G, B, R)]
+
+  xV = xS;                                               // xV <- [V    ]
+  xS = _mm_sub_ps(xS, xC);                               // xS <- [V - m]
+  xS = _mm_div_ps(xS, xV);                               // xS <- [S    ]
+
+  xC = _mm_sub_ps(xC, xV);                               // xC <- [V + m]
+ 
+  // Calculate Hue.
+  //
+  // What we get: xG - Hue
+  //              xC - Chroma * 6.
+  //
+  // What we use: xR - Destroyed during calculation.
+  //              xG - Destroyed during calculation.
+  //              xB - Destroyed during calculation.
+  //              xC - Chroma.
+  //              xX - Mask.
+  //              xY - Mask.
+  //              xZ - Mask.
+  xZ = _mm_cmpeq_ps(xV, xG);                             // xZ <- [V==G]
+  xX = _mm_cmpneq_ps(xV, xR);                            // xX <- [V!=R]
+
+  xY = _mm_and_ps(xZ, xX);                               // xY <- [V!=R && V==G]
+  xZ = _mm_andnot_ps(xZ, xX);                            // xZ <- [V!=R && V!=G]
+
+  xY = _mm_xor_ps(xY, SIMD_GET_PS(full));                // xY <- [V==R || V!=G]
+  xZ = _mm_xor_ps(xZ, SIMD_GET_PS(full));                // xZ <- [V==R || V==G]
+    
+  xR = _mm_and_ps(xR, xX);                               // xR <- [X!=0 ? R : 0]
+  xB = _mm_and_ps(xB, xZ);                               // xB <- [Z!=0 ? B : 0]
+  xG = _mm_and_ps(xG, xY);                               // xG <- [Y!=0 ? G : 0]
+
+  xZ = _mm_andnot_ps(xZ, SIMD_GET_PS(sn));               // xZ <- [sign(!Z)]
+  xY = _mm_andnot_ps(xY, SIMD_GET_PS(sn));               // xY <- [sign(!Y)]
+
+  xG = _mm_xor_ps(xG, xZ);                               // xG <- [Y!=0 ? (Z==0 ? G : -G) : 0]
+  xR = _mm_xor_ps(xR, xY);                               // xR <- [X!=0 ? (Y==0 ? R : -R) : 0]
+
+  // G is now accumulator.
+  xG = _mm_add_ps(xG, xR);                               // xG <- [Rx + Gx]
+  xB = _mm_xor_ps(xB, xY);                               // xB <- [Z!=0 ? (Y==0 ? B : -B) : 0]
+
+  xC = _mm_mul_ps(xC, SIMD_GET_PS(m6_m6_m6_m6));         // xC <- [C*6     ]
+  xG = _mm_sub_ps(xG, xB);                               // xG <- [Rx+Gx+Bx]
+
+  xH = _mm_and_ps(xX, SIMD_GET_PS(m4o6_m4o6_m4o6_m4o6)); // xH <- [V==R ?0 :-4/6]
+  xG = _mm_div_ps(xG, xC);                               // xG <- [(Rx+Gx+Bx)/6C]
+
+  // Correct the achromatic case - H/S may be infinite (or near) due to division by zero.
+  xH = _mm_xor_ps(xH, xZ);                               // xH <- [V==R ? 0 : V==G ? -4/6 : 4/6]
+  xC = _mm_cmple_ps(SIMD_GET_PS(eps), xC);
+  xH = _mm_add_ps(xH, SIMD_GET_PS(p1));                  // xH <- [V==R ? 1 : V==G ?  2/6 :10/6]
+
+  xG = _mm_add_ps(xG, xH);
+
+  // Normalize H to a fraction. If it's greater than or equal to 1 then 1 is subtracted 
+  // to get the Hue at [0..1) domain.
+  xH = _mm_cmple_ps(SIMD_GET_PS(p1), xG);
+
+  xH = _mm_and_ps(xH, SIMD_GET_PS(p1));
+  xS = _mm_and_ps(xS, xC);
+  xG = _mm_and_ps(xG, xC);
+  xG = _mm_sub_ps(xG, xH);
+
+  // Transpose.
+  xC = _mm_unpacklo_ps(xS, xV);                          // xC <- [V1|S1|V0|S0]
+  xS = _mm_unpackhi_ps(xS, xV);                          // xS <- [V3|S3|V2|S2]
+
+  xB = _mm_unpacklo_ps(xA, xG);                          // xB <- [H1|A1|H0|A0]
+  xA = _mm_unpackhi_ps(xA, xG);                          // xA <- [H3|A3|H2|A2]
+
+  xG = _mm_movelh_ps(xB, xC);                            // xG <- [V0|S0|H0|A0] 
+  xR = _mm_movelh_ps(xA, xS);                            // xR <- [V2|S2|H2|A2] 
+
+  xB = _mm_shuffle_ps(xB, xC, _MM_SHUFFLE(3, 2, 3, 2));  // xB <- [V1|S1|H1|A1]
+  xA = _mm_shuffle_ps(xA, xS, _MM_SHUFFLE(3, 2, 3, 2));  // xA <- [V3|S3|H3|A3]
+
+  // Output data: p0 == [V0|S0|H0|A0]
+  //              p1 == [V1|S1|H1|A1]
+  //              p2 == [V2|S2|H2|A2]
+  //              p3 == [V3|S3|H3|A3]
+  p0 = xG;
+  p1 = xB;
+  p2 = xR;
+  p3 = xA;
+}
+
 void ahsv_from_argb_sse2(float* dst, const float* src, int length) {
   int i = length;
 
   while ((i -= 4) >= 0) {
-    __m128 xG, xB, xA, xR;
-    __m128 xH, xS, xV, xC;
-    __m128 xX, xY, xZ;
+    __m128 x0, x1, x2, x3;
 
-    // Load 4 ARGB Pixels.
-    xC = _mm_load_ps(src +  0);                            // xC <- [B0|G0|R0|A0]
-    xS = _mm_load_ps(src +  4);                            // xS <- [B1|G1|R1|A1]
-    xR = _mm_load_ps(src +  8);                            // xR <- [B2|G2|R2|A2]
-    xV = _mm_load_ps(src + 12);                            // xV <- [B3|G3|R3|A3]
+    x0 = _mm_load_ps(src +  0);
+    x1 = _mm_load_ps(src +  4);
+    x2 = _mm_load_ps(src +  8);
+    x3 = _mm_load_ps(src + 12);
 
-    // Transpose.
-    //
-    // What we get: xA == [A3 A2 A1 A0] - Alpha channel.
-    //              xR == [R3 R2 R1 R0] - Red   channel.
-    //              xG == [G3 G2 G1 G0] - Green channel.
-    //              xB == [B3 B2 B1 B0] - Blue  channel.
-    //
-    // What we use: xC - Temporary.
-    //              xS - Temporary.
-    //              xV - Temporary.
-    xA = _mm_unpackhi_ps(xC, xS);                          // xA <- [B1|B0|G1|G0]
-    xB = _mm_unpackhi_ps(xR, xV);                          // xB <- [B3|B2|G3|G2]
-    xC = _mm_unpacklo_ps(xC, xS);                          // xC <- [R1|R0|A1|A0]
-    xR = _mm_unpacklo_ps(xR, xV);                          // xR <- [R3|R2|A3|A2]
+    ahsv_from_argb_4x(x0, x1, x2, x3, x0, x1, x2, x3);
 
-    xG = _mm_movelh_ps(xA, xB);                            // xG <- [G3|G2|G1|G0]
-    xB = _mm_movehl_ps(xB, xA);                            // xB <- [B3|B2|B1|B0]
-    xA = _mm_movelh_ps(xC, xR);                            // xA <- [A3|A2|A1|A0]
-    xR = _mm_movehl_ps(xR, xC);                            // xR <- [R3|R2|R1|R0]
-
-    // Calculate Value, Chroma, and Saturation.
-    //
-    // What we get: xC == [C3 C2 C1 C0 ] - Chroma.
-    //              xV == [V3 V2 V1 V0 ] - Value == Max(R, G, B).
-    //              xS == [S3 S2 S1 S0 ] - Saturation, possibly incorrect due to division
-    //                                     by zero, corrected at the end of the algorithm.
-    //
-    // What we use: xR
-    //              xG
-    //              xB
-    xS = _mm_max_ps(xG, xB);                               // xS <- [max(G, B)]
-    xC = _mm_min_ps(xG, xB);                               // xC <- [min(G, B)]
-
-    xS = _mm_max_ps(xS, xR);                               // xS <- [max(G, B, R)]
-    xC = _mm_min_ps(xC, xR);                               // xC <- [min(G, B, R)]
-
-    xV = xS;                                               // xV <- [V    ]
-    xS = _mm_sub_ps(xS, xC);                               // xS <- [V - m]
-    xS = _mm_div_ps(xS, xV);                               // xS <- [S    ]
-
-    xC = _mm_sub_ps(xC, xV);                               // xC <- [V + m]
- 
-    // Calculate Hue.
-    //
-    // What we get: xG - Hue
-    //              xC - Chroma * 6.
-    //
-    // What we use: xR - Destroyed during calculation.
-    //              xG - Destroyed during calculation.
-    //              xB - Destroyed during calculation.
-    //              xC - Chroma.
-    //              xX - Mask.
-    //              xY - Mask.
-    //              xZ - Mask.
-    xZ = _mm_cmpeq_ps(xV, xG);                             // xZ <- [V==G]
-    xX = _mm_cmpneq_ps(xV, xR);                            // xX <- [V!=R]
-
-    xY = _mm_and_ps(xZ, xX);                               // xY <- [V!=R && V==G]
-    xZ = _mm_andnot_ps(xZ, xX);                            // xZ <- [V!=R && V!=G]
-
-    xY = _mm_xor_ps(xY, SIMD_GET_PS(full));                // xY <- [V==R || V!=G]
-    xZ = _mm_xor_ps(xZ, SIMD_GET_PS(full));                // xZ <- [V==R || V==G]
-    
-    xR = _mm_and_ps(xR, xX);                               // xR <- [X!=0 ? R : 0]
-    xB = _mm_and_ps(xB, xZ);                               // xB <- [Z!=0 ? B : 0]
-    xG = _mm_and_ps(xG, xY);                               // xG <- [Y!=0 ? G : 0]
-
-    xZ = _mm_andnot_ps(xZ, SIMD_GET_PS(sn));               // xZ <- [sign(!Z)]
-    xY = _mm_andnot_ps(xY, SIMD_GET_PS(sn));               // xY <- [sign(!Y)]
-
-    xG = _mm_xor_ps(xG, xZ);                               // xG <- [Y!=0 ? (Z==0 ? G : -G) : 0]
-    xR = _mm_xor_ps(xR, xY);                               // xR <- [X!=0 ? (Y==0 ? R : -R) : 0]
-
-    // G is now accumulator.
-    xG = _mm_add_ps(xG, xR);                               // xG <- [Rx + Gx]
-    xB = _mm_xor_ps(xB, xY);                               // xB <- [Z!=0 ? (Y==0 ? B : -B) : 0]
-
-    xC = _mm_mul_ps(xC, SIMD_GET_PS(m6_m6_m6_m6));         // xC <- [C*6     ]
-    xG = _mm_sub_ps(xG, xB);                               // xG <- [Rx+Gx+Bx]
-
-    xH = _mm_and_ps(xX, SIMD_GET_PS(m4o6_m4o6_m4o6_m4o6)); // xH <- [V==R ?0 :-4/6]
-    xG = _mm_div_ps(xG, xC);                               // xG <- [(Rx+Gx+Bx)/6C]
-
-    // Correct the achromatic case - H/S may be infinite (or near) due to division by zero.
-    xH = _mm_xor_ps(xH, xZ);                               // xH <- [V==R ? 0 : V==G ? -4/6 : 4/6]
-    xC = _mm_cmple_ps(SIMD_GET_PS(eps), xC);
-    xH = _mm_add_ps(xH, SIMD_GET_PS(p1));                  // xH <- [V==R ? 1 : V==G ?  2/6 :10/6]
-
-    xG = _mm_add_ps(xG, xH);
-
-    // Normalize H to a fraction. If it's greater than or equal to 1 then 1 is subtracted 
-    // to get the Hue at [0..1) domain.
-    xH = _mm_cmple_ps(SIMD_GET_PS(p1), xG);
-
-    xH = _mm_and_ps(xH, SIMD_GET_PS(p1));
-    xS = _mm_and_ps(xS, xC);
-    xG = _mm_and_ps(xG, xC);
-    xG = _mm_sub_ps(xG, xH);
-
-    // Transpose.
-    xC = _mm_unpacklo_ps(xS, xV);                          // xC <- [V1|S1|V0|S0]
-    xS = _mm_unpackhi_ps(xS, xV);                          // xS <- [V3|S3|V2|S2]
-
-    xB = _mm_unpacklo_ps(xA, xG);                          // xB <- [H1|A1|H0|A0]
-    xA = _mm_unpackhi_ps(xA, xG);                          // xA <- [H3|A3|H2|A2]
-
-    xG = _mm_movelh_ps(xB, xC);                            // xG <- [V0|S0|H0|A0] 
-    xR = _mm_movelh_ps(xA, xS);                            // xR <- [V2|S2|H2|A2] 
-
-    xB = _mm_shuffle_ps(xB, xC, _MM_SHUFFLE(3, 2, 3, 2));  // xB <- [V1|S1|H1|A1]
-    xA = _mm_shuffle_ps(xA, xS, _MM_SHUFFLE(3, 2, 3, 2));  // xA <- [V3|S3|H3|A3]
-
-    // Store 4 AHSV Pixels.
-    _mm_store_ps(dst +  0, xG);
-    _mm_store_ps(dst +  4, xB);
-    _mm_store_ps(dst +  8, xR);
-    _mm_store_ps(dst + 12, xA);
+    _mm_store_ps(dst +  0, x0);
+    _mm_store_ps(dst +  4, x1);
+    _mm_store_ps(dst +  8, x2);
+    _mm_store_ps(dst + 12, x3);
 
     dst += 16;
     src += 16;
   }
 
-  // Process the remaining pixels using C.
-  if ((i += 4) > 0)
-    ahsv_from_argb_ref(dst, src, i);
+  int remain = i + 4;
+  if (remain) {
+    __m128 x0, x1, x2, x3;
+
+    x0 = _mm_load_ps(src);
+    x1 = _mm_setzero_ps();
+    x2 = _mm_setzero_ps();
+    x3 = _mm_setzero_ps();
+
+    if (i >= 2) x1 = _mm_load_ps(src + 4);
+    if (i >= 3) x2 = _mm_load_ps(src + 8);
+
+    ahsv_from_argb_4x(x0, x1, x2, x3, x0, x1, x2, x3);
+    _mm_store_ps(dst, x0);
+
+    if (i >= 2) _mm_store_ps(dst + 4, x1);
+    if (i >= 3) _mm_store_ps(dst + 8, x2);
+  }
 }
 
 void argb_from_ahsv_sse2(float* dst, const float* src, int length) {
@@ -276,9 +310,7 @@ void argb_from_ahsv_sse2(float* dst, const float* src, int length) {
   i += 4;
 
   while (i) {
-    __m128 h0;
-    __m128 x0;
-    __m128 a0;
+    __m128 x0, a0, h0;
 
     // Load 1 AHSV Pixel.
     h0 = _mm_load_ps_my(src);                              // h0 <- [V           |S           |H           |A          ]

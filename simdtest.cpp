@@ -47,89 +47,94 @@ static void rgbhsv_check(
   const char* name,
   ArgbAhsvFunc ahsv_from_argb,
   ArgbAhsvFunc argb_from_ahsv,
-  float *argb,
-  float* ahsv,
+  float* argb_src,
   int length) {
 
-  SIMD_ALIGN_VAR(float, argb_r[4], 16);
-  SIMD_ALIGN_VAR(float, ahsv_r[4], 16);
+  SIMD_ALIGN_VAR(float, tmp[4], 16);
 
-  float ahsv_from_argb_err[4];
-  float argb_from_ahsv_err[4];
+  SIMD_ALIGN_VAR(float, argb_out[4], 16);
+  SIMD_ALIGN_VAR(float, argb_ref[4], 16);
 
-  float ahsv_from_argb_max[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-  float argb_from_ahsv_max[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+  SIMD_ALIGN_VAR(float, ahsv_out[4], 16);
+  SIMD_ALIGN_VAR(float, ahsv_ref[4], 16);
+
+  float rgb2hsv_err[4];
+  float hsv2rgb_err[4];
+
+  float rgb2hsv_max[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+  float hsv2rgb_max[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
   float display_err = 1e-6f;
-
-  printf("[CHECK] IMPL=%-4s\n", name);
+  rgbhsv_fill(argb_src, length);
 
   for (int i = 0; i < length; i++) {
-    ::memcpy(argb_r, argb, 4 * sizeof(float));
+    ::memcpy(tmp, argb_src, 4 * sizeof(float));
 
-    ahsv_from_argb(ahsv_r, argb_r, 1);
-    argb_from_ahsv(argb_r, ahsv_r, 1);
+    ahsv_from_argb   (ahsv_out, tmp, 1);
+    ahsv_from_argb_hq(ahsv_ref, tmp, 1);
 
-    ahsv_from_argb_err[0] = SimdUtils::abs(ahsv[0] - ahsv_r[0]);
-    ahsv_from_argb_err[1] = SimdUtils::abs(ahsv[1] - ahsv_r[1]);
-    ahsv_from_argb_err[2] = SimdUtils::abs(ahsv[2] - ahsv_r[2]);
-    ahsv_from_argb_err[3] = SimdUtils::abs(ahsv[3] - ahsv_r[3]);
+    argb_from_ahsv   (argb_out, ahsv_out, 1);
+    argb_from_ahsv_hq(argb_ref, ahsv_out, 1);
 
-    ahsv_from_argb_max[0] = SimdUtils::max<float>(ahsv_from_argb_max[0], ahsv_from_argb_err[0]);
-    ahsv_from_argb_max[1] = SimdUtils::max<float>(ahsv_from_argb_max[1], ahsv_from_argb_err[1]);
-    ahsv_from_argb_max[2] = SimdUtils::max<float>(ahsv_from_argb_max[2], ahsv_from_argb_err[2]);
-    ahsv_from_argb_max[3] = SimdUtils::max<float>(ahsv_from_argb_max[3], ahsv_from_argb_err[3]);
+    rgb2hsv_err[0] = SimdUtils::abs(ahsv_ref[0] - ahsv_out[0]);
+    rgb2hsv_err[1] = SimdUtils::abs(ahsv_ref[1] - ahsv_out[1]);
+    rgb2hsv_err[2] = SimdUtils::abs(ahsv_ref[2] - ahsv_out[2]);
+    rgb2hsv_err[3] = SimdUtils::abs(ahsv_ref[3] - ahsv_out[3]);
 
-    argb_from_ahsv_err[0] = SimdUtils::abs(argb[0] - argb_r[0]);
-    argb_from_ahsv_err[1] = SimdUtils::abs(argb[1] - argb_r[1]);
-    argb_from_ahsv_err[2] = SimdUtils::abs(argb[2] - argb_r[2]);
-    argb_from_ahsv_err[3] = SimdUtils::abs(argb[3] - argb_r[3]);
+    rgb2hsv_max[0] = SimdUtils::max<float>(rgb2hsv_max[0], rgb2hsv_err[0]);
+    rgb2hsv_max[1] = SimdUtils::max<float>(rgb2hsv_max[1], rgb2hsv_err[1]);
+    rgb2hsv_max[2] = SimdUtils::max<float>(rgb2hsv_max[2], rgb2hsv_err[2]);
+    rgb2hsv_max[3] = SimdUtils::max<float>(rgb2hsv_max[3], rgb2hsv_err[3]);
 
-    argb_from_ahsv_max[0] = SimdUtils::max<float>(argb_from_ahsv_max[0], argb_from_ahsv_err[0]);
-    argb_from_ahsv_max[1] = SimdUtils::max<float>(argb_from_ahsv_max[1], argb_from_ahsv_err[1]);
-    argb_from_ahsv_max[2] = SimdUtils::max<float>(argb_from_ahsv_max[2], argb_from_ahsv_err[2]);
-    argb_from_ahsv_max[3] = SimdUtils::max<float>(argb_from_ahsv_max[3], argb_from_ahsv_err[3]);
+    hsv2rgb_err[0] = SimdUtils::abs(argb_ref[0] - argb_out[0]);
+    hsv2rgb_err[1] = SimdUtils::abs(argb_ref[1] - argb_out[1]);
+    hsv2rgb_err[2] = SimdUtils::abs(argb_ref[2] - argb_out[2]);
+    hsv2rgb_err[3] = SimdUtils::abs(argb_ref[3] - argb_out[3]);
 
-    if (ahsv_from_argb_err[0] >= display_err || argb_from_ahsv_err[0] >= display_err ||
-        ahsv_from_argb_err[1] >= display_err || argb_from_ahsv_err[1] >= display_err ||
-        ahsv_from_argb_err[2] >= display_err || argb_from_ahsv_err[2] >= display_err ||
-        ahsv_from_argb_err[3] >= display_err || argb_from_ahsv_err[3] >= display_err) {
+    hsv2rgb_max[0] = SimdUtils::max<float>(hsv2rgb_max[0], hsv2rgb_err[0]);
+    hsv2rgb_max[1] = SimdUtils::max<float>(hsv2rgb_max[1], hsv2rgb_err[1]);
+    hsv2rgb_max[2] = SimdUtils::max<float>(hsv2rgb_max[2], hsv2rgb_err[2]);
+    hsv2rgb_max[3] = SimdUtils::max<float>(hsv2rgb_max[3], hsv2rgb_err[3]);
 
-      printf("[ERROR] IMPL=%-4s ARGB {%+0.8f %+0.8f %+0.8f %+0.8f} -> AHSV {%+0.8f %+0.8f %+0.8f %+0.8f}\n"
-             "                       {%+0.8f %+0.8f %+0.8f %+0.8f}    AHSV {%+0.8f %+0.8f %+0.8f %+0.8f}\n",
+    if (rgb2hsv_err[0] >= display_err || hsv2rgb_err[0] >= display_err ||
+        rgb2hsv_err[1] >= display_err || hsv2rgb_err[1] >= display_err ||
+        rgb2hsv_err[2] >= display_err || hsv2rgb_err[2] >= display_err ||
+        rgb2hsv_err[3] >= display_err || hsv2rgb_err[3] >= display_err) {
+
+      printf("[ERROR] IMPL=%-4s ARGB{%+0.8f %+0.8f %+0.8f %+0.8f} -> AHSV{%+0.8f %+0.8f %+0.8f %+0.8f} (Ref)\n"
+             "                                                       AHSV{%+0.8f %+0.8f %+0.8f %+0.8f} (Out)\n"
+             "                  AHSV{%+0.8f %+0.8f %+0.8f %+0.8f} -> ARGB{%+0.8f %+0.8f %+0.8f %+0.8f} (Ref)\n"
+             "                                                       ARGB{%+0.8f %+0.8f %+0.8f %+0.8f} (Out)\n",
         name,
-        argb[0], argb[1], argb[2], argb[3],
-        ahsv[0], ahsv[1], ahsv[2], ahsv[3],
-        argb_r[0], argb_r[1], argb_r[2], argb_r[3],
-        ahsv_r[0], ahsv_r[1], ahsv_r[2], ahsv_r[3]);
+        argb_src[0], argb_src[1], argb_src[2], argb_src[3], ahsv_ref[0], ahsv_ref[1], ahsv_ref[2], ahsv_ref[3],
+        ahsv_out[0], ahsv_out[1], ahsv_out[2], ahsv_out[3],
+        ahsv_out[0], ahsv_out[1], ahsv_out[2], ahsv_out[3], argb_ref[0], argb_ref[1], argb_ref[2], argb_ref[3],
+        argb_out[0], argb_out[1], argb_out[2], argb_out[3]);
     }
 
-    argb += 4;
-    ahsv += 4;
+    argb_src += 4;
   }
 
-  if (ahsv_from_argb_max[0] == 0.0f && ahsv_from_argb_max[1] == 0.0f &&
-      ahsv_from_argb_max[2] == 0.0f && ahsv_from_argb_max[3] == 0.0f) {
-    printf("[CHECK] IMPL=%-4s AHSV<-ARGB Ok\n", name);
+  if (rgb2hsv_max[0] == 0.0f && rgb2hsv_max[1] == 0.0f && rgb2hsv_max[2] == 0.0f && rgb2hsv_max[3] == 0.0f) {
+    printf("[CHECK] IMPL=%-4s ARGB -> AHSV: OK\n", name);
   }
   else {
-    printf("[CHECK] IMPL=%-4s AHSV<-ARGB MaxErr={%e %e %e %e}\n", name,
-      ahsv_from_argb_max[0],
-      ahsv_from_argb_max[1],
-      ahsv_from_argb_max[2],
-      ahsv_from_argb_max[3]);
+    printf("[CHECK] IMPL=%-4s ARGB -> AHSV: MaxErr={%e %e %e %e}\n", name,
+      rgb2hsv_max[0],
+      rgb2hsv_max[1],
+      rgb2hsv_max[2],
+      rgb2hsv_max[3]);
   }
 
-  if (argb_from_ahsv_max[0] == 0.0f && argb_from_ahsv_max[1] == 0.0f &&
-      argb_from_ahsv_max[2] == 0.0f && argb_from_ahsv_max[3] == 0.0f) {
-    printf("[CHECK] IMPL=%-4s ARGB<-AHSV Ok\n", name);
+  if (hsv2rgb_max[0] == 0.0f && hsv2rgb_max[1] == 0.0f && hsv2rgb_max[2] == 0.0f && hsv2rgb_max[3] == 0.0f) {
+    printf("[CHECK] IMPL=%-4s AHSV -> ARGB: OK\n", name);
   }
   else {
-    printf("[CHECK] IMPL=%-4s ARGB<-AHSV MaxErr={%e %e %e %e}\n", name,
-      argb_from_ahsv_max[0],
-      argb_from_ahsv_max[1],
-      argb_from_ahsv_max[2],
-      argb_from_ahsv_max[3]);
+    printf("[CHECK] IMPL=%-4s AHSV -> ARGB: MaxErr={%e %e %e %e}\n", name,
+      hsv2rgb_max[0],
+      hsv2rgb_max[1],
+      hsv2rgb_max[2],
+      hsv2rgb_max[3]);
   };
 }
 
@@ -154,12 +159,12 @@ void rgbhsv_bench(
   timer.start();
   for (i = 0; i < quantity; i++) ahsv_from_argb(ahsv, argb, length);
   timer.stop();
-  printf("[BENCH] IMPL=%-4s [%.2u.%.3u s] [AHSV <- ARGB]\n", name, timer.get() / 1000, timer.get() % 1000);
+  printf("[BENCH] IMPL=%-4s ARGB -> AHSV: %.2u.%.3u s\n", name, timer.get() / 1000, timer.get() % 1000);
 
   timer.start();
   for (i = 0; i < quantity; i++) argb_from_ahsv(argb, ahsv, length);
   timer.stop();
-  printf("[BENCH] IMPL=%-4s [%.2u.%.3u s] [ARGB <- AHSV]\n", name, timer.get() / 1000, timer.get() % 1000);
+  printf("[BENCH] IMPL=%-4s AHSV -> ARGB: %.2u.%.3u s\n", name, timer.get() / 1000, timer.get() % 1000);
 }
 
 int main(int argc, char* argv[]) {
@@ -172,9 +177,10 @@ int main(int argc, char* argv[]) {
   float* ahsv = SimdUtils::align(ahsv_data, 16);
 
   rgbhsv_fill(argb, length);
-  ahsv_from_argb_ref(ahsv, argb, length);
+  rgbhsv_check("ref" , ahsv_from_argb_ref , argb_from_ahsv_ref , argb, length);
 
-  rgbhsv_check("sse2", ahsv_from_argb_sse2, argb_from_ahsv_sse2, argb, ahsv, length);
+  rgbhsv_fill(argb, length);
+  rgbhsv_check("sse2", ahsv_from_argb_sse2, argb_from_ahsv_sse2, argb, length);
 
   rgbhsv_bench("ref" , ahsv_from_argb_ref , argb_from_ahsv_ref , argb, ahsv, length);
   rgbhsv_bench("sse2", ahsv_from_argb_sse2, argb_from_ahsv_sse2, argb, ahsv, length);
