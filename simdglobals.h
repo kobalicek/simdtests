@@ -3,14 +3,8 @@
 //
 // [License]
 // Public Domain <unlicense.org>
-
-// [Guard]
 #ifndef _SIMDGLOBALS_H
 #define _SIMDGLOBALS_H
-
-// ============================================================================
-// [Dependencies]
-// ============================================================================
 
 #include <math.h>
 #include <stdio.h>
@@ -45,6 +39,12 @@
 // ============================================================================
 
 #if defined(_MSC_VER)
+# define SIMD_UINT64_C(x) x##ui64
+#else
+# define SIMD_UINT64_C(x) x##ull
+#endif
+
+#if defined(_MSC_VER)
 # define SIMD_INLINE __forceinline
 #elif defined(__GNUC__) || defined(__clang__)
 # define SIMD_INLINE inline __attribute__((__always_inline__))
@@ -61,10 +61,20 @@
 #endif // _MSC_VER
 
 #define SIMD_CONST_PS(name, val0, val1, val2, val3) \
-  SIMD_ALIGN_VAR(static const float, _xmm_const_##name[4], 16) = { val3, val2, val1, val0 }
+  SIMD_ALIGN_VAR(static const float, _xmm_const_##name[4], 16) = { \
+    static_cast<float>(val3), \
+    static_cast<float>(val2), \
+    static_cast<float>(val1), \
+    static_cast<float>(val0)  \
+  }
 
 #define SIMD_CONST_PI(name, val0, val1, val2, val3) \
-  SIMD_ALIGN_VAR(static const int, _xmm_const_##name[4], 16) = { val3, val2, val1, val0 }
+  SIMD_ALIGN_VAR(static const int, _xmm_const_##name[4], 16) = { \
+    static_cast<int>(val3), \
+    static_cast<int>(val2), \
+    static_cast<int>(val1), \
+    static_cast<int>(val0)  \
+  }
 
 #define SIMD_GET_SS(name) (*(const  float  *)_xmm_const_##name)
 #define SIMD_GET_PS(name) (*(const __m128  *)_xmm_const_##name)
@@ -109,15 +119,15 @@ namespace SimdUtils {
   static SIMD_INLINE bool fuzzyEq(T a, T b, T epsilon = T(1e-8)) { return abs<T>(a - b) < epsilon; }
 
   template<typename T>
-  static SIMD_INLINE bool isAligned(T p, uint32_t alignment) {
-    uint32_t mask = alignment - 1;
-    return ((uintptr_t)p & static_cast<uintptr_t>(mask)) == 0;
-  }
-
-  template<typename T>
   static SIMD_INLINE T align(T p, uint32_t alignment) {
     uint32_t mask = alignment - 1;
     return (T)( ((uintptr_t)p + mask) & ~static_cast<uintptr_t>(mask) );
+  }
+
+  template<typename T>
+  static SIMD_INLINE bool isAligned(T p, uint32_t alignment) {
+    uint32_t mask = alignment - 1;
+    return ((uintptr_t)p & static_cast<uintptr_t>(mask)) == 0;
   }
 
   template<typename T>
@@ -151,5 +161,65 @@ struct SimdTimer {
   uint32_t _cnt;
 };
 
-// [Guard]
+// ============================================================================
+// [SimdRandom]
+// ============================================================================
+
+//! Simple PRNG.
+struct SimdRandom {
+  // --------------------------------------------------------------------------
+  // [Construction / Destruction]
+  // --------------------------------------------------------------------------
+
+  SIMD_INLINE SimdRandom(uint64_t seed = 0) { reset(seed); }
+
+  // The constants used are the constants suggested as `23/18/5`.
+  enum {
+    kStep1 = 23,
+    kStep2 = 18,
+    kStep3 = 5
+  };
+
+  //! Reset the PRNG and initialize it to the given `seed`.
+  void reset(uint64_t seed = 0) {
+    // The number is arbitrary, it means nothing.
+    static const uint64_t kZeroSeed = SIMD_UINT64_C(0x1F0A2BE71D163FA0);
+
+    // Generate the state data by using splitmix64.
+    for (uint32_t i = 0; i < 2; i++) {
+      uint64_t x = (seed += SIMD_UINT64_C(0x9E3779B97F4A7C15));
+      x = (x ^ (x >> 30)) * SIMD_UINT64_C(0xBF58476D1CE4E5B9);
+      x = (x ^ (x >> 27)) * SIMD_UINT64_C(0x94D049BB133111EB);
+      x = (x ^ (x >> 31));
+      _state[i] = x != 0 ? x : kZeroSeed;
+    }
+  }
+
+  SIMD_INLINE uint64_t nextUInt64() {
+    uint64_t x = _state[0];
+    uint64_t y = _state[1];
+
+    x ^= x << kStep1;
+    y ^= y >> kStep3;
+
+    x ^= x >> kStep2;
+    x ^= y;
+
+    _state[0] = y;
+    _state[1] = x;
+
+    return x + y;
+  }
+
+  SIMD_INLINE uint32_t nextUInt32() {
+    return static_cast<uint32_t>(nextUInt64() >> 32);
+  }
+
+  // --------------------------------------------------------------------------
+  // [Members]
+  // --------------------------------------------------------------------------
+
+  uint64_t _state[2];
+};
+
 #endif // _SIMDGLOBALS_H

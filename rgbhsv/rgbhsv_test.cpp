@@ -1,17 +1,13 @@
-// [SimdRgbHsv]
+// [SimdTests - RGBHSV]
 // SIMD optimized RGB/HSV conversion.
 //
 // [License]
-// Zlib - See LICENSE.md file in the package.
-
-#include <math.h>
-#include <stdio.h>
-
-#include "./simdglobals.h"
-#include "./simdrgbhsv.h"
+// Public Domain <unlicense.org>
+#include "../simdglobals.h"
+#include "./rgbhsv.h"
 
 // ============================================================================
-// [rgbhsv_fill]
+// [SimdTests - RGBHSV - Fill]
 // ============================================================================
 
 static void rgbhsv_fill(float* argb, int length) {
@@ -40,7 +36,7 @@ static void rgbhsv_fill(float* argb, int length) {
 }
 
 // ============================================================================
-// [rgbhsv_check]
+// [SimdTests - RGBHSV - Check]
 // ============================================================================
 
 static void rgbhsv_check(
@@ -139,7 +135,7 @@ static void rgbhsv_check(
 }
 
 // ============================================================================
-// [rgbhsv_bench]
+// [SimdTests - RGBHSV - Bench]
 // ============================================================================
 
 void rgbhsv_bench(
@@ -166,6 +162,10 @@ void rgbhsv_bench(
   timer.stop();
   printf("[BENCH] IMPL=%-4s AHSV -> ARGB: %.2u.%.3u s\n", name, timer.get() / 1000, timer.get() % 1000);
 }
+
+// ============================================================================
+// [SimdTests - RGBHSV - Main]
+// ============================================================================
 
 int main(int argc, char* argv[]) {
   int length = 100000;

@@ -1,11 +1,12 @@
-// [SimdRgbHsv]
+// [SimdTests - RGBHSV]
 // SIMD optimized RGB/HSV conversion.
 //
 // [License]
-// Zlib - See LICENSE.md file in the package.
+// Public Domain <unlicense.org>
+#ifndef _RGBHSV_H
+#define _RGBHSV_H
 
-#ifndef _SIMDRGBHSV_H
-#define _SIMDRGBHSV_H
+#include "../simdglobals.h"
 
 typedef void (*ArgbAhsvFunc)(float* dst, const float* src, int length);
 
@@ -18,4 +19,4 @@ void argb_from_ahsv_hq(float* dst, const float* src, int length);
 void ahsv_from_argb_sse2(float* dst, const float* src, int length);
 void argb_from_ahsv_sse2(float* dst, const float* src, int length);
 
-#endif // _SIMDRGBHSV_H
+#endif // _RGBHSV_H

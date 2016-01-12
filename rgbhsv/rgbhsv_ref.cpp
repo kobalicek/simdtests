@@ -1,11 +1,10 @@
-// [SimdRgbHsv]
+// [SimdTests - RGBHSV]
 // SIMD optimized RGB/HSV conversion.
 //
 // [License]
-// Zlib - See LICENSE.md file in the package.
-
-#include "./simdglobals.h"
-#include "./simdrgbhsv.h"
+// Public Domain <unlicense.org>
+#include "../simdglobals.h"
+#include "./rgbhsv.h"
 
 // ============================================================================
 // [Pure C Implementation]

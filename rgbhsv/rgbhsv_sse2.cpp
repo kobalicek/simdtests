@@ -1,13 +1,12 @@
-// [SimdRgbHsv]
+// [SimdTests - RGBHSV]
 // SIMD optimized RGB/HSV conversion.
 //
 // [License]
-// Zlib - See LICENSE.md file in the package.
-
+// Public Domain <unlicense.org>
 #define USE_SSE2
 
-#include "./simdglobals.h"
-#include "./simdrgbhsv.h"
+#include "../simdglobals.h"
+#include "./rgbhsv.h"
 
 // ============================================================================
 // [SSE/SSE2 Implementation]
