@@ -33,7 +33,7 @@ static void pixels_fill(uint32_t* dst, int n, uint64_t seed) {
 // ============================================================================
 
 static void pixops_check(const char* name, PixelOpFunc a, PixelOpFunc b) {
-  printf("[CHECK] IMPL=%-15s\n", name);
+  printf("[CHECK] IMPL=%-20s\n", name);
 
   enum {
     kW = 1000,
@@ -50,7 +50,7 @@ static void pixops_check(const char* name, PixelOpFunc a, PixelOpFunc b) {
   uint32_t* aResult = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));;
   uint32_t* bResult = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));;
 
-  for (uint32_t alpha = 0; alpha <= 256; alpha++) {
+  for (uint32_t alpha = 1; alpha < 256; alpha++) {
     ::memcpy(aResult, dst, kCount * sizeof(uint32_t));
     ::memcpy(bResult, dst, kCount * sizeof(uint32_t));
 
@@ -94,7 +94,7 @@ static void pixops_bench(const char* name, PixelOpFunc func) {
   uint32_t* src = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));;
 
   for (uint32_t z = 0; z < BENCH_COUNT; z++) {
-    uint32_t alpha = 0;
+    uint32_t alpha = 1;
 
     pixels_fill(dst, kCount, SIMD_UINT64_C(0x0123456789ABCDEF));
     pixels_fill(src, kCount, SIMD_UINT64_C(0xFEDCBA9876543210));
@@ -104,8 +104,8 @@ static void pixops_bench(const char* name, PixelOpFunc func) {
       func(dst, kW * 4, src, kW * 4, kW, kH, alpha);
       dummy += dst[0];
 
-      if (++alpha >= 257)
-        alpha = 0;
+      if (++alpha >= 256)
+        alpha = 1;
     }
     timer.stop();
 
@@ -113,7 +113,9 @@ static void pixops_bench(const char* name, PixelOpFunc func) {
       best = timer.get();
   }
 
-  printf("[BENCH] IMPL=%-15s [%.2u.%.3u s] {dummy=%u}\n", name, best / 1000, best % 1000, dummy);
+  uint32_t mbps = static_cast<uint32_t>(
+    ((static_cast<uint64_t>(kCount * 4) * BENCH_ITER * 1000) / best) / (1024 * 1024));
+  printf("[BENCH] IMPL=%-20s [%.2u.%.3u s] (%u MB/s) {dummy=%u}\n", name, best / 1000, best % 1000, mbps, dummy);
 
   ::free(dst);
   ::free(src);
