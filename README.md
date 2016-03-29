@@ -4,7 +4,7 @@ SimdTests
 This is a playground used to test SIMD optimized functions related to 2D computer graphics. It contains validation of SIMD optimized functions and benchmarks that show relative performance gain. Some experiments contain SSE3 and SSSE3 version that can be also used to compare with SSE2 baseline implementation.
 
   * [Official Repository (kobalicek/simdtests)](https://github.com/kobalicek/simdtests)
-  * [Public Domain (unlicense.org)](http://unlicense.org)
+  * [Public Domain](https://unlicense.org/)
 
 The repository contains the following concepts:
 

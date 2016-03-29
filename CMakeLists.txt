@@ -36,7 +36,7 @@ macro(simd_add_test _target _files)
 endmacro()
 
 set(SIMD_COMMON_SRC
-  simdglobals)
+  simdglobals.h)
 
 set(SIMD_DEJPEG_SRC
   dejpeg/dejpeg.h
@@ -64,7 +64,16 @@ set(SIMD_PIXOPS_SRC
   pixops/pixops_ssse3.cpp
   pixops/pixops_test.cpp)
 
+set(SIMD_TRIGO_SRC
+  3rdparty/real.cpp
+  3rdparty/real.h
+  trigo/trigo.h
+  trigo/trigo_ref.cpp
+  trigo/trigo_sse2.cpp
+  trigo/trigo_test.cpp)
+
 simd_add_test(test_dejpeg "${SIMD_COMMON_SRC};${SIMD_DEJPEG_SRC}")
 simd_add_test(test_depng  "${SIMD_COMMON_SRC};${SIMD_DEPNG_SRC}")
 simd_add_test(test_rgbhsv "${SIMD_COMMON_SRC};${SIMD_RGBHSV_SRC}")
 simd_add_test(test_pixops "${SIMD_COMMON_SRC};${SIMD_PIXOPS_SRC}")
+simd_add_test(test_trigo  "${SIMD_COMMON_SRC};${SIMD_TRIGO_SRC}")

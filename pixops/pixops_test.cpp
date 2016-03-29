@@ -42,13 +42,13 @@ static void pixops_check(const char* name, PixelOpFunc a, PixelOpFunc b) {
   };
 
   uint32_t* dst = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));
-  uint32_t* src = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));;
+  uint32_t* src = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));
 
   pixels_fill(dst, kCount, SIMD_UINT64_C(0x2F2E3A4A1A191238));
   pixels_fill(src, kCount, SIMD_UINT64_C(0x3F2E3A4A1A191238));
 
-  uint32_t* aResult = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));;
-  uint32_t* bResult = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));;
+  uint32_t* aResult = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));
+  uint32_t* bResult = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));
 
   for (uint32_t alpha = 1; alpha < 256; alpha++) {
     ::memcpy(aResult, dst, kCount * sizeof(uint32_t));
@@ -91,7 +91,7 @@ static void pixops_bench(const char* name, PixelOpFunc func) {
   uint32_t dummy = 0;
 
   uint32_t* dst = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));
-  uint32_t* src = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));;
+  uint32_t* src = static_cast<uint32_t*>(malloc(kCount * sizeof(uint32_t)));
 
   for (uint32_t z = 0; z < BENCH_COUNT; z++) {
     uint32_t alpha = 1;
