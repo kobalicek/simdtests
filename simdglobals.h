@@ -30,9 +30,13 @@
 # include <emmintrin.h>
 #endif // USE_SSE2
 
+#if defined(USE_SSE3)
+# include <pmmintrin.h>
+#endif // USE_SSE3
+
 #if defined(USE_SSSE3)
 # include <tmmintrin.h>
-#endif // USE_SSE3
+#endif // USE_SSSE3
 
 #if defined(USE_SSE4_1)
 # include <smmintrin.h>

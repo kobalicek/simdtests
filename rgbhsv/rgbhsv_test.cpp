@@ -19,9 +19,9 @@ static void rgbhsv_fill(float* argb, int length) {
     float g;
     float b;
 
-    for (r = 0.0f; r <= 1.0f; r += 0.02f) {
+    for (r = 0.0f; r <= 1.0f; r += 0.001f) {
       for (g = 0.0f; g <= 1.0f; g += 0.02f) {
-        for (b = 0.0f; b <= 1.0f; b += 0.02f) {
+        for (b = 0.0f; b <= 1.0f; b += 0.015f) {
           argb[0] = a;
           argb[1] = r;
           argb[2] = g;
@@ -98,9 +98,9 @@ static void rgbhsv_check(
         rgb2hsv_err[3] >= display_err || hsv2rgb_err[3] >= display_err) {
 
       printf("[ERROR] IMPL=%-4s ARGB{%+0.8f %+0.8f %+0.8f %+0.8f} -> AHSV{%+0.8f %+0.8f %+0.8f %+0.8f} (Ref)\n"
-             "                                                       AHSV{%+0.8f %+0.8f %+0.8f %+0.8f} (Out)\n"
+             "                                                                           AHSV{%+0.8f %+0.8f %+0.8f %+0.8f} (Out)\n"
              "                  AHSV{%+0.8f %+0.8f %+0.8f %+0.8f} -> ARGB{%+0.8f %+0.8f %+0.8f %+0.8f} (Ref)\n"
-             "                                                       ARGB{%+0.8f %+0.8f %+0.8f %+0.8f} (Out)\n",
+             "                                                                           ARGB{%+0.8f %+0.8f %+0.8f %+0.8f} (Out)\n",
         name,
         argb_src[0], argb_src[1], argb_src[2], argb_src[3], ahsv_ref[0], ahsv_ref[1], ahsv_ref[2], ahsv_ref[3],
         ahsv_out[0], ahsv_out[1], ahsv_out[2], ahsv_out[3],
@@ -168,7 +168,7 @@ void rgbhsv_bench(
 // ============================================================================
 
 int main(int argc, char* argv[]) {
-  int length = 100000;
+  int length = 1000000;
 
   float* argb_data = static_cast<float*>(::malloc(length * 4 * sizeof(float) + 16));
   float* ahsv_data = static_cast<float*>(::malloc(length * 4 * sizeof(float) + 16));

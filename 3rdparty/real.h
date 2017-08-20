@@ -24,6 +24,46 @@
 namespace lol
 {
 
+class real;
+
+real sin(real const &x);
+real cos(real const &x);
+real tan(real const &x);
+real asin(real const &x);
+real acos(real const &x);
+real atan(real const &x);
+real atan2(real const &y, real const &x);
+
+/* Hyperbolic functions */
+real sinh(real const &x);
+real cosh(real const &x);
+real tanh(real const &x);
+
+/* Exponential and logarithmic functions */
+real exp(real const &x);
+real exp2(real const &x);
+real log(real const &x);
+real log2(real const &x);
+real log10(real const &x);
+real frexp(real const &x, int *exp);
+real ldexp(real const &x, int exp);
+real modf(real const &x, real *iptr);
+
+/* Power functions */
+real re(real const &x);
+real sqrt(real const &x);
+real cbrt(real const &x);
+real pow(real const &x, real const &y);
+
+/* Rounding, absolute value, remainder etc. */
+real ceil(real const &x);
+real copysign(real const &x, real const &y);
+real floor(real const &x);
+real fabs(real const &x);
+real round(real const &x);
+real fmod(real const &x, real const &y);
+
+
 class real
 {
 public:
@@ -63,44 +103,6 @@ public:
 
     bool operator !() const;
     operator bool() const;
-
-    /* Trigonometric functions */
-    friend real sin(real const &x);
-    friend real cos(real const &x);
-    friend real tan(real const &x);
-    friend real asin(real const &x);
-    friend real acos(real const &x);
-    friend real atan(real const &x);
-    friend real atan2(real const &y, real const &x);
-
-    /* Hyperbolic functions */
-    friend real sinh(real const &x);
-    friend real cosh(real const &x);
-    friend real tanh(real const &x);
-
-    /* Exponential and logarithmic functions */
-    friend real exp(real const &x);
-    friend real exp2(real const &x);
-    friend real log(real const &x);
-    friend real log2(real const &x);
-    friend real log10(real const &x);
-    friend real frexp(real const &x, int *exp);
-    friend real ldexp(real const &x, int exp);
-    friend real modf(real const &x, real *iptr);
-
-    /* Power functions */
-    friend real re(real const &x);
-    friend real sqrt(real const &x);
-    friend real cbrt(real const &x);
-    friend real pow(real const &x, real const &y);
-
-    /* Rounding, absolute value, remainder etc. */
-    friend real ceil(real const &x);
-    friend real copysign(real const &x, real const &y);
-    friend real floor(real const &x);
-    friend real fabs(real const &x);
-    friend real round(real const &x);
-    friend real fmod(real const &x, real const &y);
 
     void hexprint() const;
     void print(int ndigits = 150) const;
@@ -173,7 +175,6 @@ public:
       BIGIT_BITS = 32
     };
 
-private:
     uint32_t m_mantissa[BIGITS];
     uint32_t m_signexp;
 };

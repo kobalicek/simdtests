@@ -62,7 +62,7 @@ static void pixops_check(const char* name, PixelOpFunc a, PixelOpFunc b) {
       uint32_t bPixel = bResult[i];
 
       if (aPixel != bPixel) {
-        printf("ERROR: %0.8X != %0.8X (at %u) (alpha %u)\n", aPixel, bPixel, i, alpha);
+        printf("ERROR: %08X != %08X (at %u) (alpha %u)\n", aPixel, bPixel, i, alpha);
       }
     }
   }

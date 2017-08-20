@@ -273,7 +273,7 @@ static void dejpeg_check_ycbcr_to_rgb32(const char* name, YCbCrToRgbFunc a, YCbC
         uint32_t bVal = bDst[k];
 
         if (aVal != bVal) {
-          printf("FAILED [y=%d cb=%d cr=%d] a=0x%0.8X b=0x%0.8X\n", i, j, k, aVal, bVal);
+          printf("FAILED [y=%d cb=%d cr=%d] a=0x%08X b=0x%08X\n", i, j, k, aVal, bVal);
         }
       }
     }
